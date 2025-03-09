@@ -8,14 +8,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A subclass of HexaDddRefactorTool that attempts to merge
  * the LLM "suggestedFix" into the original code's AST
  * or at least remove known violations heuristically.
  *
- * If parsing fails (In most cases it would for this apporoach), we embed the snippet as a comment in the final file
- * so devs can incorporate it manually.
+ * If parsing fails (common for partial code), we embed those snippet blocks
+ * as a comment in the final file so devs can incorporate them manually.
  * @author kiransahoo
  */
 public class DddAutoRefactorTool extends HexaDddRefactorTool {
@@ -55,15 +57,18 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
             originalCu = StaticJavaParser.parse(originalCode);
         } catch (Exception e) {
             System.err.println("Failed to parse original => " + e.getMessage());
-            // fallback: do naive approach + embed snippet as comment
+            // fallback: do naive approach + embed entire snippet as comment
             String fallbackCode = applyHeuristicFixes(originalFile);
-            fallbackCode = embedSnippetAsComment(fallbackCode, fix);
+            fallbackCode = embedSnippetAsComment(fallbackCode, fix,
+                    "Snippet (entire) unparseable due to original parse fail:");
             writeRefactoredFile(originalFile, fallbackCode);
             return;
         }
 
         // Step 2) Attempt to parse the entire snippet as one
         boolean snippetApplied = false;
+        List<String> failedChunks = new ArrayList<>(); // store unparseable snippet blocks
+
         try {
             CompilationUnit snippetCu = StaticJavaParser.parse(fix);
             tryMergeSnippet(originalCu, snippetCu);
@@ -72,31 +77,51 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
             System.err.println("Snippet parse failure => " + mainSnippetEx.getMessage());
         }
 
-        // Step 3) If snippet not applied, try chunk-based approach
+        // Step 3) If snippet not fully applied, do chunk-based approach
         if (!snippetApplied) {
             String[] snippetBlocks = fix.split("//--- fix for chunk");
+            // If there's no '//' delimiter, snippetBlocks might just be the entire snippet,
+            // but we'll still try chunk approach anyway.
             for (String snippetBlock : snippetBlocks) {
-                snippetBlock = snippetBlock.trim();
-                if (snippetBlock.isEmpty()) continue;
+                String trimmedBlock = snippetBlock.trim();
+                if (trimmedBlock.isEmpty()) continue;
                 try {
-                    CompilationUnit snippetCu = StaticJavaParser.parse(snippetBlock);
+                    CompilationUnit snippetCu = StaticJavaParser.parse(trimmedBlock);
                     tryMergeSnippet(originalCu, snippetCu);
+                    snippetApplied = true; // at least one block succeeded
                 } catch (Exception innerEx) {
                     System.err.println("Skipping chunk => parse error: " + innerEx.getMessage());
+                    // store this chunk for embedding as comment
+                    failedChunks.add(trimmedBlock);
                 }
             }
         }
 
-        // Step 4) If we STILL didn't manage to parse anything, embed snippet
+        // Step 4) If we STILL didn't manage to parse anything, fallback
+        // or if partial merges worked, we embed leftover snippet chunks as comments.
         if (!snippetApplied) {
-            // We'll do fallback code + snippet as comment
+            // fallback code + entire snippet as comment
             String fallbackCode = applyHeuristicFixes(originalFile);
-            fallbackCode = embedSnippetAsComment(fallbackCode, fix);
+            fallbackCode = embedSnippetAsComment(fallbackCode, fix,
+                    "Entire snippet unparseable after chunk attempts:");
             writeRefactoredFile(originalFile, fallbackCode);
             return;
         }
 
-        // Step 5) If snippet was partially or fully merged, do final heuristics
+        // If partial merges succeeded, but we have leftover chunk fails,
+        // embed those chunks as comments at the bottom:
+        if (!failedChunks.isEmpty()) {
+            String leftoverComment = String.join("\n\n//--- Chunk parse fail ---\n", failedChunks);
+            // We'll embed them as a single block comment
+            leftoverComment = "\n\n/*\nUn-merged snippet blocks:\n"
+                    + leftoverComment
+                    + "\n*/\n";
+            originalCu.addOrphanComment(
+                    new com.github.javaparser.ast.comments.BlockComment(leftoverComment)
+            );
+        }
+
+        // Step 5) final heuristics on the AST
         applyHeuristicChanges(originalCu);
 
         // Step 6) write out final merged code
@@ -104,12 +129,12 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
     }
 
     /**
-     * Put the snippet into a block comment at the bottom of the code for dev reference.
+     * Put snippet(s) into a block comment at the bottom of the code for dev reference.
      */
-    private String embedSnippetAsComment(String baseCode, String snippet) {
+    private String embedSnippetAsComment(String baseCode, String snippet, String headerText) {
         StringBuilder sb = new StringBuilder(baseCode);
         sb.append("\n\n/*\n")
-                .append("Unparseable or partial snippet from LLM:\n")
+                .append(headerText).append("\n\n")
                 .append(snippet)
                 .append("\n*/\n");
         return sb.toString();
@@ -125,15 +150,14 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
                     .filter(origType -> origType.getNameAsString().equals(snippetName))
                     .findFirst()
                     .ifPresent(originalType -> {
-                        // remove domain checks, if snippet removed them
+                        // remove domain checks if snippet also removed them
                         removeDomainChecks(originalType);
-
-                        // remove directDbCall from aggregator
+                        // remove directDbCall from aggregator if snippet name suggests aggregator
                         if (snippetName.toLowerCase().contains("aggregate")) {
                             removeDirectDbCall(originalType);
                         }
 
-                        // Add snippet methods that don't exist
+                        // Merge or add snippet methods
                         snippetType.getMethods().forEach(snippetMethod -> {
                             String snippetMethodName = snippetMethod.getNameAsString();
                             boolean hasMethod = originalType.getMethods().stream()
@@ -203,6 +227,7 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
     /**
      * Writes final code to mirrored folder, naming it `_Refactored.java`.
      */
+   // @Override
     protected void writeRefactoredFile(Path originalFile, String newCode) throws IOException {
         Path rel = config.sourceDir.relativize(originalFile.getParent());
         Path outDir = config.outputDir.resolve(rel);

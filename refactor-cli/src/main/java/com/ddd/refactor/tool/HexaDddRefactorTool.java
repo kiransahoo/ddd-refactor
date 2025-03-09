@@ -265,7 +265,7 @@ No triple backticks or extraneous text. The "suggestedFix" must be valid Java pa
                         + "\n\n=== CODE CHUNK ===\n"
                         + chunk;
 
-                JSONObject resp = LlmClient.callLlm(prompt, config.openAiApiKey);
+                JSONObject resp = LlmClient.callLlm(prompt);
                 if (resp != null && resp.has("violation")) {
                     return resp;
                 }
