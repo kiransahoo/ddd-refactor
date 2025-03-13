@@ -32,9 +32,32 @@ public class DddAutoRefactorTool<T extends CompilationUnit> extends HexaDddRefac
      */
     private final List<String> domainKeywords;
 
-    public DddAutoRefactorTool(RefactorConfig config, List<String> domainKeywords) {
+    /**
+     * A list of aggregator-specific method names to remove if the class is identified as an "aggregate"
+     * (by either filename or type name containing "aggregate").
+     * E.g., ["directDbCall"] -- adapt as needed.
+     */
+    private final List<String> aggregatorMethodRemovals;
+
+    /**
+     * Construct the DddAutoRefactorTool with two sets of removal keywords:
+     *   1) domainKeywords => references in if-statements
+     *   2) aggregatorMethodRemovals => aggregator methods to remove (like "directDbCall").
+     */
+    public DddAutoRefactorTool(RefactorConfig config,
+                               List<String> domainKeywords,
+                               List<String> aggregatorMethodRemovals) {
         super(config);
-        this.domainKeywords = domainKeywords != null ? domainKeywords : List.of();
+        this.domainKeywords = (domainKeywords != null) ? domainKeywords : List.of();
+        this.aggregatorMethodRemovals = (aggregatorMethodRemovals != null) ? aggregatorMethodRemovals : List.of();
+    }
+
+    /**
+     * Overload constructor if you only have domain keywords,
+     * aggregator method removals defaults to empty.
+     */
+    public DddAutoRefactorTool(RefactorConfig config, List<String> domainKeywords) {
+        this(config, domainKeywords, List.of());
     }
 
     @Override
@@ -161,9 +184,9 @@ public class DddAutoRefactorTool<T extends CompilationUnit> extends HexaDddRefac
                         // remove domain checks if snippet also removed them
                         removeDomainChecks(originalType);
 
-                        // remove directDbCall from aggregator if snippet name suggests aggregator
+                        // If aggregator, remove aggregator methods
                         if (snippetName.toLowerCase().contains("aggregate")) {
-                            removeDirectDbCall(originalType);
+                            removeAggregatorMethods(originalType);
                         }
 
                         // Merge or add snippet methods
@@ -182,46 +205,52 @@ public class DddAutoRefactorTool<T extends CompilationUnit> extends HexaDddRefac
     /**
      * Fallback code that forcibly removes known domain violations from the raw file
      * using naive string replacements.
-     * This includes removing directDbCall() in aggregator classes
+     * This includes removing aggregatorMethodRemovals in aggregator classes
      * and any if-statements referencing the domain keywords in repository classes.
      */
     private String applyHeuristicFixes(Path originalFile) throws IOException {
         String code = Files.readString(originalFile);
         String fileNameLower = originalFile.getFileName().toString().toLowerCase();
 
-        // naive approach: remove "directDbCall()" method if aggregator
-        if (fileNameLower.contains("aggregate")) {
-            code = code.replaceAll("(?s)public\\s+void\\s+directDbCall\\(\\)\\s*\\{.*?\\}",
-                    "// removed directDbCall per domain rule");
+        // naive approach: remove aggregator methods if aggregator
+        if (fileNameLower.contains("aggregate") && !aggregatorMethodRemovals.isEmpty()) {
+            for (String methodName : aggregatorMethodRemovals) {
+                // Pattern to remove something like public void directDbCall() { ... }
+                // or any return type, e.g. "public int doSomething(...) { ... }"
+                // We'll keep it simpler to just remove no-arg method. Adapt if needed for arg methods.
+                String pattern = "(?s)public\\s+\\w+\\s+"
+                        + Pattern.quote(methodName)
+                        + "\\(\\)\\s*\\{.*?\\}";
+                code = code.replaceAll(pattern,
+                        "// removed aggregator method: " + methodName);
+            }
         }
 
         // remove domain checks in repository
-        if (fileNameLower.contains("repository")) {
+        if (fileNameLower.contains("repository") && !domainKeywords.isEmpty()) {
             // Build a regex that matches any of the domain keywords within an if(...)
-            if (!domainKeywords.isEmpty()) {
-                // e.g. domainKeywords => ["stock","price","quantity"]
-                // produce pattern => "(?i)if\s*\(.*?(stock|price|quantity).*?\).*?\{.*?\}"
-                String domainRegex = domainKeywords.stream()
-                        .map(k -> "\\b" + Pattern.quote(k.toLowerCase()) + "\\b") // ensure we only match whole words
-                        .collect(Collectors.joining("|"));
+            // e.g. domainKeywords => ["stock","price","quantity"]
+            // produce pattern => "(?i)if\s*\(.*?(stock|price|quantity).*?\).*?\{.*?\}"
+            String domainRegex = domainKeywords.stream()
+                    .map(k -> "\\b" + Pattern.quote(k.toLowerCase()) + "\\b")
+                    .collect(Collectors.joining("|"));
 
-                // (?is) => case-insensitive, dotall (so "." matches newlines)
-                String pattern = "(?is)if\\s*\\(.*?(" + domainRegex + ").*?\\).*?\\{.*?\\}";
-                code = code.replaceAll(pattern, "// removed domain check from repo");
-            }
+            // (?is) => case-insensitive, dotall (so "." matches newlines)
+            String pattern = "(?is)if\\s*\\(.*?(" + domainRegex + ").*?\\).*?\\{.*?\\}";
+            code = code.replaceAll(pattern, "// removed domain check from repo");
         }
         return code;
     }
 
     /**
      * Final pass heuristic changes on the in-memory AST.
-     * Removes directDbCall in aggregator, removes domain checks in repository, etc.
+     * Removes aggregator methods if aggregator, removes domain checks if repository, etc.
      */
     private void applyHeuristicChanges(T originalCu) {
         originalCu.getTypes().forEach(typeDecl -> {
             String typeName = typeDecl.getNameAsString().toLowerCase();
             if (typeName.contains("aggregate")) {
-                removeDirectDbCall(typeDecl);
+                removeAggregatorMethods(typeDecl);
             }
             if (typeName.contains("repository")) {
                 removeDomainChecks(typeDecl);
@@ -230,10 +259,18 @@ public class DddAutoRefactorTool<T extends CompilationUnit> extends HexaDddRefac
     }
 
     /**
-     * Removes the 'directDbCall()' method if found.
+     * Removes the aggregator methods from the type if aggregatorMethodRemovals is non-empty.
      */
-    private void removeDirectDbCall(TypeDeclaration<?> typeDecl) {
-        typeDecl.getMethods().removeIf(m -> m.getNameAsString().equals("directDbCall"));
+    private void removeAggregatorMethods(TypeDeclaration<?> typeDecl) {
+        if (aggregatorMethodRemovals.isEmpty()) {
+            return;
+        }
+        typeDecl.getMethods().removeIf(m -> {
+            String methodNameLower = m.getNameAsString().toLowerCase();
+            // remove if aggregatorMethodRemovals includes this method name (case-insensitive)
+            return aggregatorMethodRemovals.stream()
+                    .anyMatch(aggMethod -> aggMethod.equalsIgnoreCase(methodNameLower));
+        });
     }
 
     /**

@@ -3,6 +3,8 @@ package com.ddd.refactor.tool;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -40,6 +42,10 @@ public class RefactorMain {
         } catch (IOException e) {
             throw new RuntimeException("Failed to load config from resource: RefactorConfig.properties", e);
         }
+        String aggregatorMethodsStr = props.getProperty("aggregatorMethodRemovals", "").trim();
+        List<String> aggregatorMethodRemovals = aggregatorMethodsStr.isEmpty()
+                ? List.of()
+                : Arrays.asList(aggregatorMethodsStr.split("\\s*,\\s*"));
 
         // Apply generic properties to cfg (parallelism, chunk sizes, etc.).
         // This will also set cfg.domainKeywords from the "domainKeywords" property if present.
@@ -47,7 +53,7 @@ public class RefactorMain {
 
         // Create the refactoring tool using our DddAutoRefactorTool subclass
         // and pass in cfg.domainKeywords (which was set by loadConfigFromProperties).
-        DddAutoRefactorTool<?> tool = new DddAutoRefactorTool<>(cfg, cfg.domainKeywords);
+        DddAutoRefactorTool<?> tool = new DddAutoRefactorTool<>(cfg, cfg.domainKeywords,aggregatorMethodRemovals);
 
         // Run the refactoring
         tool.runRefactoring();
