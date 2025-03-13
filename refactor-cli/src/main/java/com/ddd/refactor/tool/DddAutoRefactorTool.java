@@ -2,6 +2,9 @@ package com.ddd.refactor.tool;
 
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.comments.BlockComment;
+import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.stmt.IfStmt;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -10,6 +13,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * A subclass of HexaDddRefactorTool that attempts to merge
@@ -18,12 +23,18 @@ import java.util.List;
  *
  * If parsing fails (common for partial code), we embed those snippet blocks
  * as a comment in the final file so devs can incorporate them manually.
- * @author kiransahoo
  */
-public class DddAutoRefactorTool extends HexaDddRefactorTool {
+public class DddAutoRefactorTool<T extends CompilationUnit> extends HexaDddRefactorTool {
 
-    public DddAutoRefactorTool(RefactorConfig config) {
+    /**
+     * A list of domain keywords to look for in "if" statements when removing domain checks.
+     * E.g., ["stock", "price", "quantity"] -- adapt as needed.
+     */
+    private final List<String> domainKeywords;
+
+    public DddAutoRefactorTool(RefactorConfig config, List<String> domainKeywords) {
         super(config);
+        this.domainKeywords = domainKeywords != null ? domainKeywords : List.of();
     }
 
     @Override
@@ -52,9 +63,10 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
 
         // Step 1) parse original code
         String originalCode = Files.readString(originalFile);
-        CompilationUnit originalCu;
+        T originalCu;
         try {
-            originalCu = StaticJavaParser.parse(originalCode);
+            // Cast because StaticJavaParser.parse(...) returns a concrete CompilationUnit
+            originalCu = (T) StaticJavaParser.parse(originalCode);
         } catch (Exception e) {
             System.err.println("Failed to parse original => " + e.getMessage());
             // fallback: do naive approach + embed entire snippet as comment
@@ -67,10 +79,10 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
 
         // Step 2) Attempt to parse the entire snippet as one
         boolean snippetApplied = false;
-        List<String> failedChunks = new ArrayList<>(); // store unparseable snippet blocks
+        List<String> failedChunks = new ArrayList<>();
 
         try {
-            CompilationUnit snippetCu = StaticJavaParser.parse(fix);
+            T snippetCu = (T) StaticJavaParser.parse(fix);
             tryMergeSnippet(originalCu, snippetCu);
             snippetApplied = true;
         } catch (Exception mainSnippetEx) {
@@ -80,13 +92,11 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
         // Step 3) If snippet not fully applied, do chunk-based approach
         if (!snippetApplied) {
             String[] snippetBlocks = fix.split("//--- fix for chunk");
-            // If there's no '//' delimiter, snippetBlocks might just be the entire snippet,
-            // but we'll still try chunk approach anyway.
             for (String snippetBlock : snippetBlocks) {
                 String trimmedBlock = snippetBlock.trim();
                 if (trimmedBlock.isEmpty()) continue;
                 try {
-                    CompilationUnit snippetCu = StaticJavaParser.parse(trimmedBlock);
+                    T snippetCu = (T) StaticJavaParser.parse(trimmedBlock);
                     tryMergeSnippet(originalCu, snippetCu);
                     snippetApplied = true; // at least one block succeeded
                 } catch (Exception innerEx) {
@@ -98,7 +108,7 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
         }
 
         // Step 4) If we STILL didn't manage to parse anything, fallback
-        // or if partial merges worked, we embed leftover snippet chunks as comments.
+        // or if partial merges worked, embed leftover snippet chunks as comments.
         if (!snippetApplied) {
             // fallback code + entire snippet as comment
             String fallbackCode = applyHeuristicFixes(originalFile);
@@ -112,13 +122,11 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
         // embed those chunks as comments at the bottom:
         if (!failedChunks.isEmpty()) {
             String leftoverComment = String.join("\n\n//--- Chunk parse fail ---\n", failedChunks);
-            // We'll embed them as a single block comment
             leftoverComment = "\n\n/*\nUn-merged snippet blocks:\n"
                     + leftoverComment
                     + "\n*/\n";
-            originalCu.addOrphanComment(
-                    new com.github.javaparser.ast.comments.BlockComment(leftoverComment)
-            );
+            // Add as an orphan comment
+            originalCu.addOrphanComment(new BlockComment(leftoverComment));
         }
 
         // Step 5) final heuristics on the AST
@@ -143,7 +151,7 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
     /**
      * Merges snippetCu into originalCu by matching type names and merging method changes.
      */
-    private void tryMergeSnippet(CompilationUnit originalCu, CompilationUnit snippetCu) {
+    private void tryMergeSnippet(T originalCu, T snippetCu) {
         snippetCu.getTypes().forEach(snippetType -> {
             String snippetName = snippetType.getNameAsString();
             originalCu.getTypes().stream()
@@ -152,6 +160,7 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
                     .ifPresent(originalType -> {
                         // remove domain checks if snippet also removed them
                         removeDomainChecks(originalType);
+
                         // remove directDbCall from aggregator if snippet name suggests aggregator
                         if (snippetName.toLowerCase().contains("aggregate")) {
                             removeDirectDbCall(originalType);
@@ -171,27 +180,44 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
     }
 
     /**
-     * Fallback code that forcibly removes known domain violations from the raw file.
+     * Fallback code that forcibly removes known domain violations from the raw file
+     * using naive string replacements.
+     * This includes removing directDbCall() in aggregator classes
+     * and any if-statements referencing the domain keywords in repository classes.
      */
     private String applyHeuristicFixes(Path originalFile) throws IOException {
         String code = Files.readString(originalFile);
-        // naive string approach: remove "directDbCall()" method if aggregator
-        if (originalFile.getFileName().toString().toLowerCase().contains("aggregate")) {
-            code = code.replaceAll("(?s)public void directDbCall\\(\\) \\{.*?\\}",
+        String fileNameLower = originalFile.getFileName().toString().toLowerCase();
+
+        // naive approach: remove "directDbCall()" method if aggregator
+        if (fileNameLower.contains("aggregate")) {
+            code = code.replaceAll("(?s)public\\s+void\\s+directDbCall\\(\\)\\s*\\{.*?\\}",
                     "// removed directDbCall per domain rule");
         }
+
         // remove domain checks in repository
-        if (originalFile.getFileName().toString().toLowerCase().contains("repository")) {
-            code = code.replaceAll("if \\(.*?stock.*?\\{.*?\\}",
-                    "// removed domain check from repo");
+        if (fileNameLower.contains("repository")) {
+            // Build a regex that matches any of the domain keywords within an if(...)
+            if (!domainKeywords.isEmpty()) {
+                // e.g. domainKeywords => ["stock","price","quantity"]
+                // produce pattern => "(?i)if\s*\(.*?(stock|price|quantity).*?\).*?\{.*?\}"
+                String domainRegex = domainKeywords.stream()
+                        .map(k -> "\\b" + Pattern.quote(k.toLowerCase()) + "\\b") // ensure we only match whole words
+                        .collect(Collectors.joining("|"));
+
+                // (?is) => case-insensitive, dotall (so "." matches newlines)
+                String pattern = "(?is)if\\s*\\(.*?(" + domainRegex + ").*?\\).*?\\{.*?\\}";
+                code = code.replaceAll(pattern, "// removed domain check from repo");
+            }
         }
         return code;
     }
 
     /**
      * Final pass heuristic changes on the in-memory AST.
+     * Removes directDbCall in aggregator, removes domain checks in repository, etc.
      */
-    private void applyHeuristicChanges(CompilationUnit originalCu) {
+    private void applyHeuristicChanges(T originalCu) {
         originalCu.getTypes().forEach(typeDecl -> {
             String typeName = typeDecl.getNameAsString().toLowerCase();
             if (typeName.contains("aggregate")) {
@@ -204,21 +230,33 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
     }
 
     /**
-     * Example method removing a "directDbCall" method from aggregator.
+     * Removes the 'directDbCall()' method if found.
      */
-    private void removeDirectDbCall(com.github.javaparser.ast.body.TypeDeclaration<?> typeDecl) {
+    private void removeDirectDbCall(TypeDeclaration<?> typeDecl) {
         typeDecl.getMethods().removeIf(m -> m.getNameAsString().equals("directDbCall"));
     }
 
     /**
-     * Remove domain checks from a repository, e.g. "if(agg.getStock() < 0)" or "if(agg.getStock() > ...)"
+     * Removes if-statements containing any of the domain keywords in the type's methods.
      */
-    private void removeDomainChecks(com.github.javaparser.ast.body.TypeDeclaration<?> repoType) {
-        repoType.getMethods().forEach(m -> {
-            m.getBody().ifPresent(body -> {
-                body.getStatements().removeIf(st -> {
-                    String stString = st.toString().toLowerCase();
-                    return stString.contains("if") && stString.contains("stock");
+    private void removeDomainChecks(TypeDeclaration<?> typeDecl) {
+        if (domainKeywords.isEmpty()) {
+            return; // nothing to remove if no domain keywords
+        }
+
+        typeDecl.getMethods().forEach(method -> {
+            method.getBody().ifPresent(body -> {
+                body.getStatements().removeIf(stmt -> {
+                    // Only consider if-statements:
+                    if (stmt.isIfStmt()) {
+                        IfStmt ifStmt = stmt.asIfStmt();
+                        // Convert the condition to a string, lower-case it:
+                        String conditionText = ifStmt.getCondition().toString().toLowerCase();
+                        // If the condition references ANY of the domain keywords => remove
+                        return domainKeywords.stream()
+                                .anyMatch(keyword -> conditionText.contains(keyword.toLowerCase()));
+                    }
+                    return false;
                 });
             });
         });
@@ -227,7 +265,7 @@ public class DddAutoRefactorTool extends HexaDddRefactorTool {
     /**
      * Writes final code to mirrored folder, naming it `_Refactored.java`.
      */
-   // @Override
+    //@Override
     protected void writeRefactoredFile(Path originalFile, String newCode) throws IOException {
         Path rel = config.sourceDir.relativize(originalFile.getParent());
         Path outDir = config.outputDir.resolve(rel);

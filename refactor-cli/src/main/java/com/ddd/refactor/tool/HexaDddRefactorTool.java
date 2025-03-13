@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  *   4) Aggregates chunk "suggestedFix" if violations are found
  *   5) Writes or merges the final refactored code
  *   6) Uses concurrency, caching, retries
- *   @author kiransahoo
+ * @author kiransahoo
  */
 public class HexaDddRefactorTool {
 
@@ -44,6 +44,9 @@ public class HexaDddRefactorTool {
          * The "safe prompt". We read it from a config file, but you can override if needed.
          */
         public String basePrompt;
+
+        // domain keywords to remove if-statements referencing them
+        public List<String> domainKeywords = new ArrayList<>();
 
         public RefactorConfig(Path source, Path output, String apiKey) {
             this.sourceDir = source;
@@ -84,7 +87,9 @@ public class HexaDddRefactorTool {
         applyProperties(cfg, props);
     }
 
-
+    /**
+     * Overload that loads configuration from a file path on disk.
+     */
     public static void loadConfigFromProperties(RefactorConfig cfg, String propertiesFilePath) {
         Properties props = new Properties();
         try (InputStream in = Files.newInputStream(Paths.get(propertiesFilePath))) {
@@ -92,6 +97,13 @@ public class HexaDddRefactorTool {
         } catch (IOException e) {
             throw new RuntimeException("Cannot load config file: " + propertiesFilePath, e);
         }
+        applyProperties(cfg, props);
+    }
+
+    /**
+     * ***NEW OVERLOAD*** that accepts a ready-made Properties object.
+     */
+    public static void loadConfigFromProperties(RefactorConfig cfg, Properties props) {
         applyProperties(cfg, props);
     }
 
@@ -104,6 +116,14 @@ public class HexaDddRefactorTool {
         cfg.maxPromptRetries = Integer.parseInt(props.getProperty("maxPromptRetries", "3"));
         cfg.cacheEnabled = Boolean.parseBoolean(props.getProperty("cacheEnabled", "true"));
         cfg.basePrompt = props.getProperty("basePrompt", getDefaultSafePrompt());
+
+        String domainKeywordsStr = props.getProperty("domainKeywords", "").trim();
+        if (!domainKeywordsStr.isBlank()) {
+            String[] parts = domainKeywordsStr.split("\\s*,\\s*");
+            cfg.domainKeywords = Arrays.asList(parts);
+        } else {
+            cfg.domainKeywords = new ArrayList<>();
+        }
     }
 
     /**

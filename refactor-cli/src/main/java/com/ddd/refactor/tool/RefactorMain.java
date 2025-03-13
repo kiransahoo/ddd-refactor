@@ -3,6 +3,7 @@ package com.ddd.refactor.tool;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Properties;
 
 /**
  * Simple CLI to run the refactoring, using our DddAutoRefactorTool
@@ -12,7 +13,6 @@ import java.nio.file.Path;
  *   mvn --projects refactor-cli exec:java \
  *     -Dexec.mainClass=com.ddd.refactor.tool.RefactorMain \
  *     -Dexec.args="/path/to/legacy-code/src/main/java sk-OPENAIKEY /desired/outputDir"
- *     @author kiransahoo
  */
 public class RefactorMain {
 
@@ -31,19 +31,25 @@ public class RefactorMain {
                 new HexaDddRefactorTool.RefactorConfig(sourceDir, outputDir, apiKey);
 
         // Load properties from /resources/RefactorConfig.properties
+        Properties props = new Properties();
         try (InputStream in = RefactorMain.class.getResourceAsStream("/RefactorConfig.properties")) {
             if (in == null) {
                 throw new IllegalStateException("Could not find RefactorConfig.properties on classpath.");
             }
-            HexaDddRefactorTool.loadConfigFromProperties(cfg, in);
+            props.load(in);
         } catch (IOException e) {
             throw new RuntimeException("Failed to load config from resource: RefactorConfig.properties", e);
         }
 
-        // Create the tool (using DddAutoRefactorTool to handle merges)
-        HexaDddRefactorTool tool = new DddAutoRefactorTool(cfg);
+        // Apply generic properties to cfg (parallelism, chunk sizes, etc.).
+        // This will also set cfg.domainKeywords from the "domainKeywords" property if present.
+        HexaDddRefactorTool.loadConfigFromProperties(cfg, props);
 
-        // Run
+        // Create the refactoring tool using our DddAutoRefactorTool subclass
+        // and pass in cfg.domainKeywords (which was set by loadConfigFromProperties).
+        DddAutoRefactorTool<?> tool = new DddAutoRefactorTool<>(cfg, cfg.domainKeywords);
+
+        // Run the refactoring
         tool.runRefactoring();
     }
 }
