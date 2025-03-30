@@ -1,0 +1,1597 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Enhanced DDD Refactoring System API</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #fff;
+        }
+        
+        header {
+            background-color: #4D7A97;
+            color: #fff;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 22px;
+            margin: 0;
+        }
+        
+        h2 {
+            font-size: 18px;
+            margin: 20px 0 10px 0;
+            color: #4D7A97;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        
+        h3 {
+            font-size: 16px;
+            margin: 10px 0;
+            color: #4D7A97;
+        }
+        
+        h4 {
+            font-size: 14px;
+            margin: 8px 0;
+            color: #4D7A97;
+        }
+        
+        .summary {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .memberSummary {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .memberSummary th, .memberSummary td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .memberSummary th {
+            background-color: #eee;
+        }
+        
+        pre {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 3px;
+            overflow: auto;
+        }
+        
+        code {
+            font-family: Consolas, monospace;
+            font-size: 13px;
+        }
+        
+        .description {
+            margin: 10px 0;
+        }
+        
+        .subNav {
+            background-color: #dee3e9;
+            padding: 5px 15px;
+            margin-bottom: 15px;
+        }
+        
+        .memberDetails {
+            margin-left: 20px;
+        }
+        
+        .block {
+            margin: 10px 0;
+        }
+        
+        dl {
+            margin: 10px 0;
+        }
+        
+        dt {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        dd {
+            margin-left: 20px;
+        }
+        
+        a {
+            color: #4D7A97;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .contentContainer {
+            padding: 0 20px;
+            margin-bottom: 20px;
+        }
+        
+        .inheritance {
+            margin: 10px 0;
+        }
+        
+        .inheritedList {
+            margin-left: 20px;
+        }
+        
+        .packageHierarchy {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        
+        .classBox {
+            border: 1px solid #ddd;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        
+        #toc {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100%;
+            overflow: auto;
+            background-color: #f8f8f8;
+            border-right: 1px solid #ddd;
+            padding: 15px;
+        }
+        
+        #content {
+            margin-left: 270px;
+            padding: 20px;
+        }
+        
+        .tocHeader {
+            font-weight: bold;
+            margin-top: 10px;
+            color: #4D7A97;
+        }
+        
+        .tocList {
+            list-style-type: none;
+            padding-left: 10px;
+        }
+        
+        .tocSubList {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        
+        .sourceCode {
+            display: none;
+        }
+        
+        .toggleSource {
+            color: #4D7A97;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .packageTitle {
+            font-size: 20px;
+            margin: 25px 0 15px 0;
+            color: #333;
+            background-color: #eee;
+            padding: 8px;
+            border-radius: 5px;
+        }
+    </style>
+    <script>
+        function toggleSource(id) {
+            var element = document.getElementById(id);
+            if (element.style.display === "none") {
+                element.style.display = "block";
+            } else {
+                element.style.display = "none";
+            }
+        }
+        
+        function scrollToElement(id) {
+            var element = document.getElementById(id);
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</head>
+<body>
+
+<div id="toc">
+    <h3>Table of Contents</h3>
+    
+    <div class="tocHeader">Core & Main</div>
+    <ul class="tocList">
+        <li><a href="#RefactorMain" onclick="scrollToElement('RefactorMain'); return false;">RefactorMain</a></li>
+        <li><a href="#EnhancedRefactorAgent" onclick="scrollToElement('EnhancedRefactorAgent'); return false;">EnhancedRefactorAgent</a></li>
+    </ul>
+    
+    <div class="tocHeader">Embedding Services</div>
+    <ul class="tocList">
+        <li><a href="#EmbeddingService" onclick="scrollToElement('EmbeddingService'); return false;">EmbeddingService</a></li>
+        <li><a href="#OpenAiEmbeddingService" onclick="scrollToElement('OpenAiEmbeddingService'); return false;">OpenAiEmbeddingService</a></li>
+    </ul>
+    
+    <div class="tocHeader">Vector Database</div>
+    <ul class="tocList">
+        <li><a href="#VectorDbService" onclick="scrollToElement('VectorDbService'); return false;">VectorDbService</a></li>
+        <li><a href="#AbstractVectorDbService" onclick="scrollToElement('AbstractVectorDbService'); return false;">AbstractVectorDbService</a></li>
+        <li><a href="#EnhancedInMemoryVectorDb" onclick="scrollToElement('EnhancedInMemoryVectorDb'); return false;">EnhancedInMemoryVectorDb</a></li>
+        <li><a href="#PineconeVectorDbService" onclick="scrollToElement('PineconeVectorDbService'); return false;">PineconeVectorDbService</a></li>
+    </ul>
+    
+    <div class="tocHeader">RAG Components</div>
+    <ul class="tocList">
+        <li><a href="#RagService" onclick="scrollToElement('RagService'); return false;">RagService</a></li>
+        <li><a href="#RagContextRetriever" onclick="scrollToElement('RagContextRetriever'); return false;">RagContextRetriever</a></li>
+        <li><a href="#DocumentChunker" onclick="scrollToElement('DocumentChunker'); return false;">DocumentChunker</a></li>
+        <li><a href="#DocumentProcessor" onclick="scrollToElement('DocumentProcessor'); return false;">DocumentProcessor</a></li>
+        <li><a href="#RagEvaluator" onclick="scrollToElement('RagEvaluator'); return false;">RagEvaluator</a></li>
+        <li><a href="#RagConfig" onclick="scrollToElement('RagConfig'); return false;">RagConfig</a></li>
+        <li><a href="#RagFactory" onclick="scrollToElement('RagFactory'); return false;">RagFactory</a></li>
+    </ul>
+    
+    <div class="tocHeader">Architecture</div>
+    <ul class="tocList">
+        <li><a href="#architecture" onclick="scrollToElement('architecture'); return false;">System Architecture</a></li>
+        <li><a href="#configuration" onclick="scrollToElement('configuration'); return false;">Configuration Reference</a></li>
+        <li><a href="#workflow" onclick="scrollToElement('workflow'); return false;">Typical Workflow</a></li>
+    </ul>
+</div>
+
+<div id="content">
+    <header>
+        <h1>Enhanced DDD Refactoring System API Documentation</h1>
+    </header>
+    
+    <div class="contentContainer">
+        <div class="description">
+            <h2>Overview</h2>
+            <p>
+                The Enhanced DDD Refactoring System is a powerful tool for automatically detecting and fixing Domain-Driven Design (DDD) and Hexagonal Architecture violations in Java code. This system leverages Large Language Models (LLMs) with Retrieval Augmented Generation (RAG) to provide more accurate, context-aware refactoring suggestions.
+            </p>
+            <p>
+                The documentation is organized by package and component type. Each class documentation includes a description, methods, and usage examples where appropriate.
+            </p>
+        </div>
+        
+        <!-- Core & Main Classes -->
+        <div class="packageTitle" id="corePackage">com.ddd.refactor.tool Package</div>
+        
+        <div class="classBox" id="RefactorMain">
+            <h3>RefactorMain</h3>
+            <div class="description">
+                <p>
+                    Enhanced CLI entry point for the DDD refactoring process with optional RAG capabilities.
+                    This tool analyzes Java code for Domain-Driven Design and Hexagonal Architecture violations,
+                    then suggests refactoring fixes.
+                </p>
+                <p>
+                    The enhanced version integrates RAG functionality that can be enabled/disabled via properties.
+                    When enabled, RAG provides more accurate and semantically relevant domain context to the LLM
+                    for better refactoring suggestions.
+                </p>
+            </div>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>void</td>
+                    <td>main(String[] args)</td>
+                    <td>Main entry point for the refactoring tool</td>
+                </tr>
+                <tr>
+                    <td>IDomainContextRetriever</td>
+                    <td>createBasicContextRetriever(Properties props)</td>
+                    <td>Creates a basic context retriever as fallback</td>
+                </tr>
+            </table>
+            
+            <h4>Usage Example</h4>
+            <pre><code>mvn --projects refactor-cli exec:java \
+  -Dexec.mainClass=com.ddd.refactor.tool.RefactorMain \
+  -Dexec.args="/path/to/legacy-code/src/main/java sk-OPENAIKEY /desired/outputDir"</code></pre>
+        </div>
+        
+        <div class="packageTitle" id="agentPackage">com.ddd.refactor.agent Package</div>
+        
+        <div class="classBox" id="EnhancedRefactorAgent">
+            <h3>EnhancedRefactorAgent</h3>
+            <div class="description">
+                <p>
+                    An enhanced version of the AdvancedRefactorAgent that leverages RAG capabilities
+                    for improved context retrieval and more accurate refactoring suggestions.
+                </p>
+                <p>
+                    This agent extends the base functionality by incorporating semantic search for domain context,
+                    intelligent code chunking, and the ability to index processed files for future reference.
+                </p>
+            </div>
+            
+            <h4>Constructor Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Constructor</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>EnhancedRefactorAgent(String openAiApiKey, String basePrompt, Path legacyFile, int maxRetries, int chunkSize, int parallelism, IDomainContextRetriever contextRetriever, RagService ragService, boolean useRagForContext, int maxChunkSizeForRag, boolean indexCodeForRag, String domainContextPath)</td>
+                    <td>Constructs an EnhancedRefactorAgent with RAG capabilities</td>
+                </tr>
+            </table>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>static EnhancedRefactorAgent</td>
+                    <td>fromProperties(Properties props, Path legacyFile)</td>
+                    <td>Factory method to create an agent from properties</td>
+                </tr>
+                <tr>
+                    <td>JSONObject</td>
+                    <td>runRefactoring()</td>
+                    <td>Executes the refactoring process on the legacy file</td>
+                </tr>
+                <tr>
+                    <td>JSONObject</td>
+                    <td>processOneChunk(int index, List&lt;String&gt; chunkLines)</td>
+                    <td>Processes a single chunk of code using RAG</td>
+                </tr>
+            </table>
+            
+            <h4>Usage Example</h4>
+            <pre><code>Properties props = loadProperties("refactor.properties");
+Path sourceFile = Paths.get("src/main/java/com/example/LegacyCode.java");
+EnhancedRefactorAgent agent = EnhancedRefactorAgent.fromProperties(props, sourceFile);
+JSONObject result = agent.runRefactoring();</code></pre>
+        </div>
+        
+        <!-- Embedding Services -->
+        <div class="packageTitle" id="embeddingPackage">com.ddd.refactor.agent.embedding Package</div>
+        
+        <div class="classBox" id="EmbeddingService">
+            <h3>EmbeddingService</h3>
+            <div class="description">
+                <p>
+                    Interface for services that generate vector embeddings from text.
+                    These embeddings are used for semantic search in vector databases.
+                </p>
+            </div>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>List&lt;Float&gt;</td>
+                    <td>generateEmbedding(String text)</td>
+                    <td>Generate an embedding vector for a single text input</td>
+                </tr>
+                <tr>
+                    <td>List&lt;List&lt;Float&gt;&gt;</td>
+                    <td>generateEmbeddings(List&lt;String&gt; texts)</td>
+                    <td>Generate embedding vectors for multiple text inputs</td>
+                </tr>
+                <tr>
+                    <td>Map&lt;String, List&lt;Float&gt;&gt;</td>
+                    <td>generateEmbeddingsForDocument(Map&lt;String, String&gt; document)</td>
+                    <td>Generate embeddings for a structured document with multiple sections</td>
+                </tr>
+                <tr>
+                    <td>int</td>
+                    <td>getEmbeddingDimension()</td>
+                    <td>Get the dimensionality of the embeddings produced by this service</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>isAvailable()</td>
+                    <td>Check if the embedding service is available and operational</td>
+                </tr>
+                <tr>
+                    <td>String</td>
+                    <td>getModelName()</td>
+                    <td>Get the name of the model used for generating embeddings</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="classBox" id="OpenAiEmbeddingService">
+            <h3>OpenAiEmbeddingService</h3>
+            <div class="description">
+                <p>
+                    Implementation of EmbeddingService using OpenAI's embedding API.
+                    This service can generate embeddings for text using OpenAI's models.
+                </p>
+            </div>
+            
+            <h4>Constructor Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Constructor</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>OpenAiEmbeddingService(String apiKey)</td>
+                    <td>Constructs an OpenAiEmbeddingService with default settings</td>
+                </tr>
+                <tr>
+                    <td>OpenAiEmbeddingService(String apiKey, String modelName, String apiUrl, int batchSize, int embeddingDimension)</td>
+                    <td>Constructs an OpenAiEmbeddingService with custom settings</td>
+                </tr>
+            </table>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>List&lt;Float&gt;</td>
+                    <td>generateEmbedding(String text)</td>
+                    <td>Generate an embedding vector for a single text input</td>
+                </tr>
+                <tr>
+                    <td>List&lt;List&lt;Float&gt;&gt;</td>
+                    <td>generateEmbeddings(List&lt;String&gt; texts)</td>
+                    <td>Generate embedding vectors for multiple text inputs</td>
+                </tr>
+                <tr>
+                    <td>Map&lt;String, List&lt;Float&gt;&gt;</td>
+                    <td>generateEmbeddingsForDocument(Map&lt;String, String&gt; document)</td>
+                    <td>Generate embeddings for a structured document with multiple sections</td>
+                </tr>
+                <tr>
+                    <td>int</td>
+                    <td>getEmbeddingDimension()</td>
+                    <td>Get the dimensionality of the embeddings</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>isAvailable()</td>
+                    <td>Check if the OpenAI embedding service is available</td>
+                </tr>
+                <tr>
+                    <td>String</td>
+                    <td>getModelName()</td>
+                    <td>Get the name of the embedding model being used</td>
+                </tr>
+            </table>
+            
+            <h4>Usage Example</h4>
+            <pre><code>String apiKey = "sk-your-openai-api-key";
+EmbeddingService embeddingService = new OpenAiEmbeddingService(apiKey);
+
+// Generate an embedding for a single text
+List&lt;Float&gt; embedding = embeddingService.generateEmbedding("This is a sample text");
+
+// Check embedding dimension
+int dimension = embeddingService.getEmbeddingDimension(); // Typically 1536 for Ada</code></pre>
+        </div>
+        
+        <!-- Vector Database Services -->
+        <div class="packageTitle" id="vectordbPackage">com.ddd.refactor.agent.vectordb Package</div>
+        
+        <div class="classBox" id="VectorDbService">
+            <h3>VectorDbService</h3>
+            <div class="description">
+                <p>
+                    Interface defining the operations for a vector database service.
+                    This abstraction allows the system to use different vector database implementations.
+                </p>
+            </div>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>upsert(String documentId, List&lt;Float&gt; vector, Map&lt;String, Object&gt; metadata)</td>
+                    <td>Upserts a document with its embedding vector</td>
+                </tr>
+                <tr>
+                    <td>List&lt;Map&lt;String, Object&gt;&gt;</td>
+                    <td>search(List&lt;Float&gt; queryVector, int topK)</td>
+                    <td>Performs a similarity search in the vector database</td>
+                </tr>
+                <tr>
+                    <td>Map&lt;String, Object&gt;</td>
+                    <td>getById(String documentId)</td>
+                    <td>Retrieves a document by its ID</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>delete(String documentId)</td>
+                    <td>Deletes a document from the vector database</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>initialize()</td>
+                    <td>Initializes the vector database connection</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>isAvailable()</td>
+                    <td>Checks if the vector database service is available</td>
+                </tr>
+                <tr>
+                    <td>List&lt;Map&lt;String, Object&gt;&gt;</td>
+                    <td>executeNativeQuery(String nativeQuery)</td>
+                    <td>Executes a query in the native format of the specific vector database</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="classBox" id="AbstractVectorDbService">
+            <h3>AbstractVectorDbService</h3>
+            <div class="description">
+                <p>
+                    Abstract implementation of VectorDbService providing common functionality
+                    and error handling for vector database operations.
+                </p>
+            </div>
+            
+            <h4>Constructor Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Constructor</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>AbstractVectorDbService()</td>
+                    <td>Default constructor which calls initialize() method</td>
+                </tr>
+            </table>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>void</td>
+                    <td>shutdown()</td>
+                    <td>Shuts down the vector database service</td>
+                </tr>
+                <tr>
+                    <td>abstract void</td>
+                    <td>closeResources()</td>
+                    <td>Closes any resources used by the vector database service</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>isAvailable()</td>
+                    <td>Checks if the vector database service is available</td>
+                </tr>
+                <tr>
+                    <td>List&lt;Map&lt;String, Object&gt;&gt;</td>
+                    <td>search(List&lt;Float&gt; queryVector, int topK)</td>
+                    <td>Performs a similarity search with error handling</td>
+                </tr>
+                <tr>
+                    <td>abstract List&lt;Map&lt;String, Object&gt;&gt;</td>
+                    <td>performSearch(List&lt;Float&gt; queryVector, int topK)</td>
+                    <td>Performs the actual similarity search implementation</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>upsert(String documentId, List&lt;Float&gt; vector, Map&lt;String, Object&gt; metadata)</td>
+                    <td>Upserts a document with error handling</td>
+                </tr>
+                <tr>
+                    <td>abstract boolean</td>
+                    <td>performUpsert(String documentId, List&lt;Float&gt; vector, Map&lt;String, Object&gt; metadata)</td>
+                    <td>Performs the actual upsert implementation</td>
+                </tr>
+                <tr>
+                    <td>Map&lt;String, Object&gt;</td>
+                    <td>getById(String documentId)</td>
+                    <td>Retrieves a document by its ID with error handling</td>
+                </tr>
+                <tr>
+                    <td>abstract Map&lt;String, Object&gt;</td>
+                    <td>performGetById(String documentId)</td>
+                    <td>Performs the actual getById implementation</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>delete(String documentId)</td>
+                    <td>Deletes a document with error handling</td>
+                </tr>
+                <tr>
+                    <td>abstract boolean</td>
+                    <td>performDelete(String documentId)</td>
+                    <td>Performs the actual delete implementation</td>
+                </tr>
+                <tr>
+                    <td>List&lt;Map&lt;String, Object&gt;&gt;</td>
+                    <td>executeNativeQuery(String nativeQuery)</td>
+                    <td>Executes a native query with error handling</td>
+                </tr>
+                <tr>
+                    <td>abstract List&lt;Map&lt;String, Object&gt;&gt;</td>
+                    <td>performNativeQuery(String nativeQuery)</td>
+                    <td>Performs the execution of a native query</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="classBox" id="EnhancedInMemoryVectorDb">
+            <h3>EnhancedInMemoryVectorDb</h3>
+            <div class="description">
+                <p>
+                    Enhanced in-memory implementation of VectorDbService with thread-safety and additional features.
+                    This service stores and retrieves vector embeddings in memory, making it suitable for
+                    testing and small-scale applications.
+                </p>
+            </div>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>initialize()</td>
+                    <td>Initializes the in-memory vector database</td>
+                </tr>
+                <tr>
+                    <td>void</td>
+                    <td>closeResources()</td>
+                    <td>Cleans up in-memory vector database resources</td>
+                </tr>
+                <tr>
+                    <td>List&lt;Map&lt;String, Object&gt;&gt;</td>
+                    <td>performSearch(List&lt;Float&gt; queryVector, int topK)</td>
+                    <td>Performs a similarity search in the in-memory database</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>performUpsert(String documentId, List&lt;Float&gt; vector, Map&lt;String, Object&gt; metadata)</td>
+                    <td>Upserts a document into the in-memory database</td>
+                </tr>
+                <tr>
+                    <td>Map&lt;String, Object&gt;</td>
+                    <td>performGetById(String documentId)</td>
+                    <td>Retrieves a document by its ID from the in-memory database</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>performDelete(String documentId)</td>
+                    <td>Deletes a document from the in-memory database</td>
+                </tr>
+                <tr>
+                    <td>List&lt;Map&lt;String, Object&gt;&gt;</td>
+                    <td>performNativeQuery(String nativeQuery)</td>
+                    <td>Not supported in the in-memory implementation</td>
+                </tr>
+                <tr>
+                    <td>double</td>
+                    <td>cosineSimilarity(List&lt;Float&gt; v1, List&lt;Float&gt; v2)</td>
+                    <td>Calculates the cosine similarity between two vectors</td>
+                </tr>
+                <tr>
+                    <td>int</td>
+                    <td>getDocumentCount()</td>
+                    <td>Returns the current number of documents in the database</td>
+                </tr>
+                <tr>
+                    <td>void</td>
+                    <td>clear()</td>
+                    <td>Clears all documents from the database</td>
+                </tr>
+                <tr>
+                    <td>int</td>
+                    <td>bulkUpsert(Map&lt;String, Map.Entry&lt;List&lt;Float&gt;, Map&lt;String, Object&gt;&gt;&gt; documents)</td>
+                    <td>Bulk upsert multiple documents at once</td>
+                </tr>
+            </table>
+            
+            <h4>Usage Example</h4>
+            <pre><code>VectorDbService vectorDb = new EnhancedInMemoryVectorDb();
+
+// Create an embedding vector (for demonstration purposes)
+List&lt;Float&gt; embedding = Arrays.asList(0.1f, 0.2f, 0.3f, 0.4f);
+
+// Add metadata
+Map&lt;String, Object&gt; metadata = new HashMap&lt;&gt;();
+metadata.put("title", "Sample Document");
+metadata.put("content", "This is a sample document for vector storage");
+
+// Upsert the document
+vectorDb.upsert("doc1", embedding, metadata);
+
+// Search for similar documents
+List&lt;Map&lt;String, Object&gt;&gt; results = vectorDb.search(embedding, 5);</code></pre>
+        </div>
+        
+        <div class="classBox" id="PineconeVectorDbService">
+            <h3>PineconeVectorDbService</h3>
+            <div class="description">
+                <p>
+                    Implementation of VectorDbService for Pinecone vector database.
+                    This service integrates with Pinecone's cloud-based vector database
+                    for scalable similarity search.
+                </p>
+            </div>
+            
+            <h4>Constructor Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Constructor</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>PineconeVectorDbService(String apiKey, String environment, String projectId, String indexName, String namespace)</td>
+                    <td>Constructs a PineconeVectorDbService with the given parameters</td>
+                </tr>
+                <tr>
+                    <td>PineconeVectorDbService(String apiKey, String environment, String projectId, String indexName)</td>
+                    <td>Constructs a PineconeVectorDbService with a default namespace</td>
+                </tr>
+            </table>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>initialize()</td>
+                    <td>Initializes the connection to Pinecone</td>
+                </tr>
+                <tr>
+                    <td>void</td>
+                    <td>closeResources()</td>
+                    <td>Closes Pinecone resources (no-op for REST-based client)</td>
+                </tr>
+                <tr>
+                    <td>List&lt;Map&lt;String, Object&gt;&gt;</td>
+                    <td>performSearch(List&lt;Float&gt; queryVector, int topK)</td>
+                    <td>Performs a similarity search in Pinecone</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>performUpsert(String documentId, List&lt;Float&gt; vector, Map&lt;String, Object&gt; metadata)</td>
+                    <td>Upserts a document into Pinecone</td>
+                </tr>
+                <tr>
+                    <td>Map&lt;String, Object&gt;</td>
+                    <td>performGetById(String documentId)</td>
+                    <td>Retrieves a document by its ID from Pinecone</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>performDelete(String documentId)</td>
+                    <td>Deletes a document from Pinecone</td>
+                </tr>
+                <tr>
+                    <td>List&lt;Map&lt;String, Object&gt;&gt;</td>
+                    <td>performNativeQuery(String nativeQuery)</td>
+                    <td>Executes a native Pinecone query</td>
+                </tr>
+            </table>
+            
+            <h4>Usage Example</h4>
+            <pre><code>String apiKey = "your-pinecone-api-key";
+String environment = "us-west1-gcp";
+String projectId = "your-project-id";
+String indexName = "ddd-refactor";
+String namespace = "refactor-v1";
+
+VectorDbService vectorDb = new PineconeVectorDbService(
+        apiKey, environment, projectId, indexName, namespace);
+
+// Check if connection is established
+if (vectorDb.isAvailable()) {
+    // Use the service for vector operations
+    // ...
+}</code></pre>
+        </div>
+        
+        <!-- RAG Components -->
+        <div class="packageTitle" id="ragPackage">com.ddd.refactor.agent.rag Package</div>
+        
+        <div class="classBox" id="RagService">
+            <h3>RagService</h3>
+            <div class="description">
+                <p>
+                    Retrieval Augmented Generation (RAG) service for enhancing LLM prompts
+                    with relevant context from a vector database.
+                </p>
+                <p>
+                    This service is the core component that integrates vector embeddings and
+                    retrieval to provide context-aware prompt enhancement.
+                </p>
+            </div>
+            
+            <h4>Constructor Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Constructor</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>RagService(VectorDbService vectorDbService, EmbeddingService embeddingService, int maxResults, double relevanceThreshold, boolean includeCitations)</td>
+                    <td>Constructs a RagService with the specified services and settings</td>
+                </tr>
+                <tr>
+                    <td>RagService(VectorDbService vectorDbService, EmbeddingService embeddingService)</td>
+                    <td>Constructs a RagService with default settings</td>
+                </tr>
+            </table>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>String</td>
+                    <td>enhancePromptWithContext(String originalPrompt, String userQuery)</td>
+                    <td>Enhance a prompt with relevant context from the vector database</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>isRagAvailable()</td>
+                    <td>Check if the RAG functionality is available</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>isEnabled()</td>
+                    <td>Check if RAG enhancement is enabled</td>
+                </tr>
+                <tr>
+                    <td>void</td>
+                    <td>setEnabled(boolean enabled)</td>
+                    <td>Enable or disable RAG enhancement</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>indexDocument(String documentId, String title, String content, Map&lt;String, Object&gt; additionalMetadata)</td>
+                    <td>Index a document in the vector database for later retrieval</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>deleteDocument(String documentId)</td>
+                    <td>Delete a document from the vector database</td>
+                </tr>
+                <tr>
+                    <td>int</td>
+                    <td>indexCodeSnippets(Map&lt;String, String&gt; snippets, String language)</td>
+                    <td>Index code snippets for context retrieval during refactoring</td>
+                </tr>
+                <tr>
+                    <td>Map&lt;String, Object&gt;</td>
+                    <td>getDocument(String documentId)</td>
+                    <td>Retrieve a document by its ID</td>
+                </tr>
+            </table>
+            
+            <h4>Usage Example</h4>
+            <pre><code>// Create vector database and embedding service instances
+VectorDbService vectorDb = new EnhancedInMemoryVectorDb();
+EmbeddingService embeddingService = new OpenAiEmbeddingService(apiKey);
+
+// Create the RAG service
+RagService ragService = new RagService(vectorDb, embeddingService, 5, 0.7, true);
+
+// Index some domain context
+Map&lt;String, Object&gt; metadata = new HashMap&lt;&gt;();
+metadata.put("type", "domain_context");
+ragService.indexDocument(
+    "agg_pattern", 
+    "Aggregator Pattern", 
+    "Aggregates must not call infrastructure directly...", 
+    metadata
+);
+
+// Enhance a prompt with context
+String basePrompt = "Analyze this code for DDD violations";
+String enhancedPrompt = ragService.enhancePromptWithContext(
+    basePrompt, 
+    "Java code with repository calling domain logic"
+);</code></pre>
+        </div>
+        
+        <div class="classBox" id="RagContextRetriever">
+            <h3>RagContextRetriever</h3>
+            <div class="description">
+                <p>
+                    Implementation of IDomainContextRetriever that uses RAG for semantic context retrieval.
+                    This class bridges the RAG functionality with the existing refactoring system.
+                </p>
+            </div>
+            
+            <h4>Constructor Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Constructor</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>RagContextRetriever(RagService ragService, EmbeddingService embeddingService)</td>
+                    <td>Constructs a RagContextRetriever with the specified RAG service and embedding service</td>
+                </tr>
+            </table>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>String</td>
+                    <td>retrieveContext(String chunkText, int topK)</td>
+                    <td>Retrieve domain context relevant to the given chunk of code</td>
+                </tr>
+                <tr>
+                    <td>List&lt;Map&lt;String, Object&gt;&gt;</td>
+                    <td>queryVectorDb(List&lt;Float&gt; queryEmbedding, int topK)</td>
+                    <td>Query the vector database using the embedding service</td>
+                </tr>
+            </table>
+            
+            <h4>Usage Example</h4>
+            <pre><code>// Create the RAG service and embedding service
+RagService ragService = new RagService(vectorDb, embeddingService);
+
+// Create the context retriever
+IDomainContextRetriever contextRetriever = new RagContextRetriever(ragService, embeddingService);
+
+// Retrieve context for a code chunk
+String codeChunk = "public class UserRepository { ... }";
+String context = contextRetriever.retrieveContext(codeChunk, 3);</code></pre>
+        </div>
+        
+        <div class="classBox" id="DocumentChunker">
+            <h3>DocumentChunker</h3>
+            <div class="description">
+                <p>
+                    Utility class for chunking documents into smaller pieces for better retrieval and processing.
+                    This class provides various chunking strategies optimized for different content types.
+                </p>
+            </div>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>static List&lt;String&gt;</td>
+                    <td>chunkByLines(String content, int maxLinesPerChunk, int overlap)</td>
+                    <td>Chunk a document by splitting based on lines</td>
+                </tr>
+                <tr>
+                    <td>static List&lt;String&gt;</td>
+                    <td>chunkJavaCode(String javaCode, int maxLinesPerChunk)</td>
+                    <td>Chunk Java code intelligently to keep classes and methods together</td>
+                </tr>
+                <tr>
+                    <td>static List&lt;String&gt;</td>
+                    <td>chunkByParagraphs(String content, int targetChunkSize, int overlap)</td>
+                    <td>Chunk content into smaller pieces by paragraphs</td>
+                </tr>
+                <tr>
+                    <td>static List&lt;String&gt;</td>
+                    <td>chunkContent(String content, String contentType, int chunkSize, int overlap)</td>
+                    <td>Choose the appropriate chunking strategy based on content type</td>
+                </tr>
+            </table>
+            
+            <h4>Usage Example</h4>
+            <pre><code>// Read a Java file
+String javaCode = Files.readString(Paths.get("src/main/java/com/example/MyClass.java"));
+
+// Chunk the Java code intelligently
+List&lt;String&gt; chunks = DocumentChunker.chunkJavaCode(javaCode, 300);
+
+// Process each chunk
+for (String chunk : chunks) {
+    // Process the chunk...
+}</code></pre>
+        </div>
+        
+        <div class="classBox" id="DocumentProcessor">
+            <h3>DocumentProcessor</h3>
+            <div class="description">
+                <p>
+                    A service for processing documents for RAG indexing.
+                    This class handles document ingestion, chunking, and indexing.
+                </p>
+            </div>
+            
+            <h4>Constructor Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Constructor</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>DocumentProcessor(RagService ragService, int chunkSize, int chunkOverlap)</td>
+                    <td>Constructs a DocumentProcessor with the specified parameters</td>
+                </tr>
+            </table>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>processFile(Path filePath, Map&lt;String, Object&gt; metadata)</td>
+                    <td>Process and index a document from a file</td>
+                </tr>
+                <tr>
+                    <td>boolean</td>
+                    <td>processDocument(String title, String content, String contentType, Map&lt;String, Object&gt; metadata)</td>
+                    <td>Process and index a document from text content</td>
+                </tr>
+                <tr>
+                    <td>int</td>
+                    <td>processDirectory(Path directoryPath, List&lt;String&gt; fileTypes, boolean recursive)</td>
+                    <td>Process and index all documents in a directory</td>
+                </tr>
+                <tr>
+                    <td>int</td>
+                    <td>processCodeSnippets(Map&lt;String, String&gt; snippets)</td>
+                    <td>Process and index Java code snippets</td>
+                </tr>
+                <tr>
+                    <td>int</td>
+                    <td>processDirectoryWithPattern(Path directoryPath, String pattern, boolean recursive)</td>
+                    <td>Process and index all documents in a directory matching the specified pattern</td>
+                </tr>
+                <tr>
+                    <td>String</td>
+                    <td>detectContentType(String fileName)</td>
+                    <td>Detect the content type from a file name</td>
+                </tr>
+                <tr>
+                    <td>static List&lt;Path&gt;</td>
+                    <td>findFiles(Path directoryPath, List&lt;String&gt; extensions, boolean recursive)</td>
+                    <td>Find all files with the specified extensions in a directory</td>
+                </tr>
+            </table>
+            
+            <h4>Usage Example</h4>
+            <pre><code>// Create RAG service and document processor
+RagService ragService = new RagService(vectorDb, embeddingService);
+DocumentProcessor processor = new DocumentProcessor(ragService, 1000, 200);
+
+// Process a directory of Java files
+Path sourcePath = Paths.get("src/main/java");
+int processed = processor.processDirectory(
+    sourcePath, 
+    List.of(".java"), 
+    true
+);
+
+System.out.println("Processed " + processed + " files");</code></pre>
+        </div>
+        
+        <div class="classBox" id="RagEvaluator">
+            <h3>RagEvaluator</h3>
+            <div class="description">
+                <p>
+                    Utility for evaluating and logging RAG quality and performance.
+                    This class helps measure the effectiveness of the retrieval system.
+                </p>
+            </div>
+            
+            <h4>Constructor Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Constructor</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>RagEvaluator(RagService ragService, EmbeddingService embeddingService, VectorDbService vectorDbService, Path evaluationOutputDir)</td>
+                    <td>Constructs a RagEvaluator with the specified services</td>
+                </tr>
+            </table>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>Map&lt;String, Object&gt;</td>
+                    <td>evaluateWithQueries(List&lt;String&gt; testQueries, Map&lt;String, List&lt;String&gt;&gt; expectedKeywords)</td>
+                    <td>Evaluate the RAG system using a set of test queries</td>
+                </tr>
+                <tr>
+                    <td>Map&lt;String, Object&gt;</td>
+                    <td>evaluateEmbeddingQuality(Map&lt;String, List&lt;String&gt;&gt; documentGroups)</td>
+                    <td>Evaluate the embedding quality by measuring how well similar documents cluster</td>
+                </tr>
+            </table>
+            
+            <h4>Usage Example</h4>
+            <pre><code>// Create services and evaluator
+RagService ragService = new RagService(vectorDb, embeddingService);
+RagEvaluator evaluator = new RagEvaluator(
+    ragService, 
+    embeddingService, 
+    vectorDb, 
+    Paths.get("./evaluation_results")
+);
+
+// Define test queries and expected keywords
+List&lt;String&gt; queries = List.of(
+    "How should repositories be implemented in DDD?",
+    "What is an aggregate in domain-driven design?"
+);
+
+Map&lt;String, List&lt;String&gt;&gt; expectedKeywords = Map.of(
+    "How should repositories be implemented in DDD?", 
+    List.of("repository", "interface", "domain"),
+    
+    "What is an aggregate in domain-driven design?", 
+    List.of("aggregate", "entity", "root")
+);
+
+// Run evaluation
+Map&lt;String, Object&gt; results = evaluator.evaluateWithQueries(queries, expectedKeywords);</code></pre>
+        </div>
+        
+        <div class="classBox" id="RagConfig">
+            <h3>RagConfig</h3>
+            <div class="description">
+                <p>
+                    Configuration class for RAG settings.
+                    This class centralizes all RAG-related configuration.
+                </p>
+            </div>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>static RagConfig</td>
+                    <td>fromProperties(Properties props)</td>
+                    <td>Create a RagConfig from a Properties object</td>
+                </tr>
+                <tr>
+                    <td>static RagConfig</td>
+                    <td>fromPropertiesFile(String propertiesPath)</td>
+                    <td>Load RAG configuration from a properties file</td>
+                </tr>
+                <tr>
+                    <td>static RagConfig</td>
+                    <td>fromResource(String resourcePath)</td>
+                    <td>Load RAG configuration from a resource in the classpath</td>
+                </tr>
+                <tr>
+                    <td>Properties</td>
+                    <td>toProperties()</td>
+                    <td>Convert this configuration to a Properties object</td>
+                </tr>
+            </table>
+            
+            <h4>Usage Example</h4>
+            <pre><code>// Load from properties file
+RagConfig config = RagConfig.fromPropertiesFile("./refactor.properties");
+
+// Check if RAG is enabled
+if (config.isEnabled()) {
+    // Use config settings
+    int maxResults = config.getMaxResults();
+    double threshold = config.getRelevanceThreshold();
+    // ...
+}</code></pre>
+        </div>
+        
+        <div class="classBox" id="RagFactory">
+            <h3>RagFactory</h3>
+            <div class="description">
+                <p>
+                    Factory class for creating and configuring RAG components.
+                    This class simplifies the creation and setup of RAG services.
+                </p>
+            </div>
+            
+            <h4>Method Summary</h4>
+            <table class="memberSummary">
+                <tr>
+                    <th>Return Type</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>static RagService</td>
+                    <td>createRagService(Properties props)</td>
+                    <td>Create a RAG service using configuration from the provided properties</td>
+                </tr>
+                <tr>
+                    <td>static EmbeddingService</td>
+                    <td>createEmbeddingService(Properties props)</td>
+                    <td>Create an embedding service using configuration from the provided properties</td>
+                </tr>
+                <tr>
+                    <td>static VectorDbService</td>
+                    <td>createVectorDbService(Properties props)</td>
+                    <td>Create a vector database service using configuration from the provided properties</td>
+                </tr>
+                <tr>
+                    <td>static IDomainContextRetriever</td>
+                    <td>createContextRetriever(RagService ragService)</td>
+                    <td>Create a domain context retriever using the specified RAG service</td>
+                </tr>
+                <tr>
+                    <td>static Properties</td>
+                    <td>loadRagProperties(String propertiesPath)</td>
+                    <td>Load RAG configuration from a properties file</td>
+                </tr>
+                <tr>
+                    <td>static Properties</td>
+                    <td>loadRagPropertiesFromResource(String resourcePath)</td>
+                    <td>Load RAG configuration from a properties file in the classpath</td>
+                </tr>
+                <tr>
+                    <td>static Properties</td>
+                    <td>mapLegacyProperties(Properties legacyProps)</td>
+                    <td>Map properties from legacy format to the new format</td>
+                </tr>
+                <tr>
+                    <td>static String</td>
+                    <td>getOpenAiApiKey(Properties props)</td>
+                    <td>Get the OpenAI API key from properties, handling both new and legacy property names</td>
+                </tr>
+            </table>
+            
+            <h4>Usage Example</h4>
+            <pre><code>// Load properties
+Properties props = RagFactory.loadRagPropertiesFromResource("/RefactorConfig.properties");
+
+// Create RAG service and context retriever
+RagService ragService = RagFactory.createRagService(props);
+IDomainContextRetriever contextRetriever = RagFactory.createContextRetriever(ragService);</code></pre>
+        </div>
+        
+        <!-- Architecture -->
+        <div id="architecture" class="classBox">
+            <h2>System Architecture</h2>
+            <p>
+                The Enhanced DDD Refactoring System is organized into several key components that work together to detect and fix DDD violations:
+            </p>
+            
+            <h3>Core Components</h3>
+            <ul>
+                <li><strong>RefactorMain</strong>: Entry point that coordinates the entire process</li>
+                <li><strong>HexaDddRefactorTool</strong>: Base tool that manages file processing and LLM interactions</li>
+                <li><strong>DddAutoRefactorTool</strong>: Enhanced tool that attempts to merge refactoring fixes into code</li>
+                <li><strong>EnhancedRefactorAgent</strong>: Agent that leverages RAG for improved context retrieval</li>
+            </ul>
+            
+            <h3>RAG Subsystem</h3>
+            <ul>
+                <li><strong>RagService</strong>: Core service for context retrieval and prompt enhancement</li>
+                <li><strong>EmbeddingService</strong>: Generates vector embeddings from text</li>
+                <li><strong>VectorDbService</strong>: Stores and retrieves vector embeddings</li>
+                <li><strong>DocumentProcessor</strong>: Manages document ingestion and chunking</li>
+                <li><strong>RagContextRetriever</strong>: Bridges RAG with the existing context retrieval system</li>
+            </ul>
+            
+            <h3>Component Relationships</h3>
+            <pre>
+     ┌────────────────┐
+     │  RefactorMain  │
+     └────────┬───────┘
+              │
+              │ creates
+              ▼
+     ┌────────────────┐  uses   ┌───────────────────┐
+     │DddAutoRefactor ├────────►│EnhancedRefactorAgent│
+     │     Tool       │         └──────────┬────────┘
+     └────────────────┘                    │
+                                          │
+                                          │ uses
+                                          ▼
+     ┌────────────────┐  uses   ┌───────────────────┐
+     │RagContextRetriever◄───────┤    RagService    │
+     └────────┬───────┘         └──────────┬────────┘
+              │                            │
+              │                            │ uses
+              │                            ▼
+              │                 ┌───────────────────┐
+              │                 │ EmbeddingService  │
+              │                 └──────────┬────────┘
+              │                            │
+              │                            │ used by
+              │                            ▼
+              │        ┌─────────┐  uses  ┌───────────────────┐
+              └────────►VectorDb ◄────────┤  VectorDbService  │
+                       │Retriever│        └───────────────────┘
+                       └─────────┘
+            </pre>
+            
+            <p>In this architecture:</p>
+            <ol>
+                <li>RefactorMain is the entry point that sets up configuration and initiates the refactoring process</li>
+                <li>DddAutoRefactorTool orchestrates the processing of Java files</li>
+                <li>EnhancedRefactorAgent leverages RAG capabilities to improve context retrieval</li>
+                <li>RagContextRetriever provides semantically relevant domain context</li>
+                <li>RagService coordinates the embedding and retrieval operations</li>
+                <li>EmbeddingService generates vector representations of text</li>
+                <li>VectorDbService stores and retrieves these vectors based on similarity</li>
+            </ol>
+        </div>
+        
+        <div id="configuration" class="classBox">
+            <h2>Configuration Reference</h2>
+            <p>
+                The system is configured through the RefactorConfig.properties file:
+            </p>
+            
+            <h3>Core Configuration</h3>
+            <table class="memberSummary">
+                <tr>
+                    <th>Property</th>
+                    <th>Description</th>
+                    <th>Default</th>
+                </tr>
+                <tr>
+                    <td>maxParallel</td>
+                    <td>Maximum parallel threads for processing files</td>
+                    <td>4</td>
+                </tr>
+                <tr>
+                    <td>maxLinesPerChunk</td>
+                    <td>Maximum lines per code chunk when splitting files</td>
+                    <td>300</td>
+                </tr>
+                <tr>
+                    <td>maxPromptRetries</td>
+                    <td>Maximum number of retries for LLM prompts</td>
+                    <td>3</td>
+                </tr>
+                <tr>
+                    <td>cacheEnabled</td>
+                    <td>Whether to cache LLM responses</td>
+                    <td>true</td>
+                </tr>
+                <tr>
+                    <td>openAiApiKey</td>
+                    <td>OpenAI API key for LLM access</td>
+                    <td>(Required)</td>
+                </tr>
+                <tr>
+                    <td>basePrompt</td>
+                    <td>Base prompt template for the LLM</td>
+                    <td>(Default prompt template)</td>
+                </tr>
+            </table>
+            
+            <h3>RAG Configuration</h3>
+            <table class="memberSummary">
+                <tr>
+                    <th>Property</th>
+                    <th>Description</th>
+                    <th>Default</th>
+                </tr>
+                <tr>
+                    <td>rag.enabled</td>
+                    <td>Enable/disable RAG functionality</td>
+                    <td>false</td>
+                </tr>
+                <tr>
+                    <td>rag.maxResults</td>
+                    <td>Maximum number of results from vector search</td>
+                    <td>5</td>
+                </tr>
+                <tr>
+                    <td>rag.relevanceThreshold</td>
+                    <td>Minimum similarity score threshold</td>
+                    <td>0.7</td>
+                </tr>
+                <tr>
+                    <td>rag.includeCitations</td>
+                    <td>Include source citations in responses</td>
+                    <td>true</td>
+                </tr>
+                <tr>
+                    <td>rag.useForContext</td>
+                    <td>Use RAG for context retrieval</td>
+                    <td>true</td>
+                </tr>
+                <tr>
+                    <td>rag.indexCodeSnippets</td>
+                    <td>Index processed code snippets</td>
+                    <td>true</td>
+                </tr>
+                <tr>
+                    <td>rag.documentStoragePath</td>
+                    <td>Path for document storage</td>
+                    <td>./rag_documents</td>
+                </tr>
+                <tr>
+                    <td>rag.chunkSize</td>
+                    <td>Size of content chunks for RAG</td>
+                    <td>1000</td>
+                </tr>
+                <tr>
+                    <td>rag.chunkOverlap</td>
+                    <td>Overlap between chunks</td>
+                    <td>200</td>
+                </tr>
+                <tr>
+                    <td>rag.domainContextPath</td>
+                    <td>Path to domain context files</td>
+                    <td>(Empty)</td>
+                </tr>
+            </table>
+            
+            <h3>Vector Database Configuration</h3>
+            <table class="memberSummary">
+                <tr>
+                    <th>Property</th>
+                    <th>Description</th>
+                    <th>Default</th>
+                </tr>
+                <tr>
+                    <td>vectordb.provider</td>
+                    <td>Vector database provider (inmemory, pinecone)</td>
+                    <td>inmemory</td>
+                </tr>
+                <tr>
+                    <td>vectordb.pinecone.*</td>
+                    <td>Pinecone-specific configuration</td>
+                    <td>(Empty)</td>
+                </tr>
+            </table>
+            
+            <h3>Embedding Service Configuration</h3>
+            <table class="memberSummary">
+                <tr>
+                    <th>Property</th>
+                    <th>Description</th>
+                    <th>Default</th>
+                </tr>
+                <tr>
+                    <td>embedding.provider</td>
+                    <td>Embedding provider (openai)</td>
+                    <td>openai</td>
+                </tr>
+                <tr>
+                    <td>embedding.openai.*</td>
+                    <td>OpenAI-specific configuration</td>
+                    <td>(Various defaults)</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div id="workflow" class="classBox">
+            <h2>Typical Workflow</h2>
+            <p>
+                The typical workflow for using the Enhanced DDD Refactoring System involves:
+            </p>
+            
+            <ol>
+                <li><strong>Configuration Setup</strong>: Create or modify RefactorConfig.properties</li>
+                <li><strong>Domain Context Preparation</strong>: Gather domain examples and place them in the configured path</li>
+                <li><strong>Execution</strong>: Run RefactorMain with source directory, API key, and output path</li>
+                <li><strong>Review Results</strong>: Examine the refactored files in the output directory</li>
+            </ol>
+            
+            <h3>Command-line Usage</h3>
+            <pre><code>mvn --projects refactor-cli exec:java \
+  -Dexec.mainClass=com.ddd.refactor.tool.RefactorMain \
+  -Dexec.args="/path/to/legacy-code/src/main/java sk-OPENAIKEY /desired/outputDir"</code></pre>
+            
+            <h3>Configuration Example</h3>
+            <pre><code># Core settings (original format)
+maxParallel=4
+maxLinesPerChunk=300
+maxPromptRetries=3
+cacheEnabled=true
+openAiApiKey=sk-your-openai-api-key-here
+basePrompt=You are an expert in Java, Spring Boot, Hexagonal Architecture...
+
+# RAG settings (new format)
+rag.enabled=true
+rag.maxResults=5
+rag.relevanceThreshold=0.7
+rag.useForContext=true
+rag.domainContextPath=./domain_examples
+
+# Vector DB settings
+vectordb.provider=inmemory
+
+# Embedding settings
+embedding.provider=openai
+embedding.openai.model=text-embedding-ada-002</code></pre>
+            
+            <h3>Internal Flow</h3>
+            <ol>
+                <li>RefactorMain loads configuration and initializes components</li>
+                <li>If RAG is enabled, domain context files are indexed</li>
+                <li>DddAutoRefactorTool finds and processes Java files</li>
+                <li>For each file, the tool:
+                    <ul>
+                        <li>Splits the file into manageable chunks</li>
+                        <li>For each chunk, retrieves relevant domain context</li>
+                        <li>Sends the chunk and context to the LLM</li>
+                        <li>Parses the LLM response for DDD violations and fixes</li>
+                        <li>Attempts to merge the suggested fixes into the code</li>
+                    </ul>
+                </li>
+                <li>Fixed code is written to the output directory</li>
+                <li>If RAG indexing is enabled, processed files are indexed for future use</li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div style="text-align: center; margin-top: 20px; padding: 10px; background-color: #eee;">
+        <p>Enhanced DDD Refactoring System Documentation | #kiransahoo#
+    </div>
+</footer>
+
+</body>
+</html>

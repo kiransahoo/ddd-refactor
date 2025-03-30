@@ -29,15 +29,15 @@ public class AdvancedRefactorAgent {
 
     private static final String OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 
-    private final String openAiApiKey;
-    private final String basePrompt;
-    private final Path legacyFile;
-    private final int maxRetries;
-    private final int chunkSize;
-    private final int parallelism;
+    protected final String openAiApiKey;
+    protected final String basePrompt;
+    protected final Path legacyFile;
+    protected final int maxRetries;
+    protected final int chunkSize;
+    protected final int parallelism;
 
     // Domain context retrieval strategy
-    private final IDomainContextRetriever contextRetriever;
+    protected final IDomainContextRetriever contextRetriever;
 
     public AdvancedRefactorAgent(String openAiApiKey,
                                         String basePrompt,
@@ -175,7 +175,7 @@ If violation=true, suggestedFix MUST parse in JavaParser. ASCII quotes only, no 
      *  2) multi-turn parse check
      *  3) fallback if parse fails
      */
-    private JSONObject processOneChunk(int index, List<String> chunkLines) throws IOException, InterruptedException {
+    protected JSONObject processOneChunk(int index, List<String> chunkLines) throws IOException, InterruptedException {
         String chunkText = String.join("\n", chunkLines);
         // retrieve up to 2 relevant domain snippets
         String domainContext = contextRetriever.retrieveContext(chunkText, 2);
@@ -247,7 +247,7 @@ If violation=true, suggestedFix MUST parse in JavaParser. ASCII quotes only, no 
     /**
      * Calls GPT chat completions
      */
-    private JSONObject callOpenAiChat(List<JSONObject> convo) throws IOException, InterruptedException {
+    protected JSONObject callOpenAiChat(List<JSONObject> convo) throws IOException, InterruptedException {
         JSONObject reqBody = new JSONObject();
         reqBody.put("model", "gpt-4");
         JSONArray msgs = new JSONArray();
@@ -279,7 +279,7 @@ If violation=true, suggestedFix MUST parse in JavaParser. ASCII quotes only, no 
     /**
      * Extract JSON from GPT content
      */
-    private JSONObject extractJson(String content) {
+    protected JSONObject extractJson(String content) {
         int start = content.indexOf('{');
         int end = content.lastIndexOf('}');
         if (start == -1 || end == -1 || end < start) {
@@ -294,7 +294,7 @@ If violation=true, suggestedFix MUST parse in JavaParser. ASCII quotes only, no 
         }
     }
 
-    private boolean tryParseJava(String code) {
+    protected boolean tryParseJava(String code) {
         try {
             StaticJavaParser.parse(code);
             return true;
@@ -304,7 +304,7 @@ If violation=true, suggestedFix MUST parse in JavaParser. ASCII quotes only, no 
         }
     }
 
-    private List<List<String>> chunkify(List<String> lines, int size) {
+    protected List<List<String>> chunkify(List<String> lines, int size) {
         List<List<String>> out = new ArrayList<>();
         for (int i = 0; i < lines.size(); i += size) {
             out.add(lines.subList(i, Math.min(i + size, lines.size())));
